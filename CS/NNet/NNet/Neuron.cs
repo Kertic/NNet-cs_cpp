@@ -1,24 +1,26 @@
+using System;
 using MathNet.Numerics.LinearAlgebra;
 
 namespace NNet
 {
     public class Neuron
     {
-        private float _value = 0.0f;
-        public NeuronLink[] LinksFromPreviousLayer;
+        private double _activation = 0.0f;
+        public NeuronLink[] Influences;
 
-        public float Value
+        public double Activation
         {
             get
             {
-                if (LinksFromPreviousLayer == null || LinksFromPreviousLayer.Length <= 0) return _value;
-                float totalVal = 0.0f;
-                for (int i = 0; i < LinksFromPreviousLayer.Length; i++)
+                if (Influences == null || Influences.Length <= 0) return _activation;
+                double totalVal = 0.0f;
+                for (int i = 0; i < Influences.Length; i++)
                 {
-                    totalVal += LinksFromPreviousLayer[i].GetWeightedSum();
+                    totalVal += Influences[i].GetWeightedSum();
                 }
 
-                _value = totalVal;
+                var squish = (1.0f / (1 + Math.Pow(Math.E, -1.0f * totalVal)));
+                _activation = squish;
                 return totalVal;
 
             }
@@ -26,7 +28,7 @@ namespace NNet
 
         public Neuron(float inVal = 0.0f)
         {
-            _value = inVal;
+            _activation = inVal;
         }
     }
 }

@@ -18,9 +18,9 @@ using System.Diagnostics.Contracts;
              Bias = bias;
          }
 
-         public float GetWeightedSum()
+         public double GetWeightedSum()
          {
-             return Back.Value * Weight + Bias;
+             return Back.Activation * Weight + Bias;
          }
      }
  }

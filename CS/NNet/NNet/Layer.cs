@@ -6,7 +6,7 @@ namespace NNet
     public class Layer
     {
         public Neuron[] NeuronArray;
-        public Layer backLayer;
+        public Layer BackLayer;
 
         public Layer(Neuron[] neuronArray, Layer backLayer)
         {
@@ -18,12 +18,12 @@ namespace NNet
             }
         }
 
-        public Vector<float> GetNeuronValues()
+        public Vector<double> GetNeuronValues()
         {
-            Vector<float> returnVector = new DenseVector(NeuronArray.Length);
+            Vector<double> returnVector = Vector<double>.Build.Dense(NeuronArray.Length);
             for (int i = 0; i < NeuronArray.Length; i++)
             {
-                returnVector[i] = NeuronArray[i].Value;
+                returnVector[i] = NeuronArray[i].Activation;
             }
 
             return returnVector;
