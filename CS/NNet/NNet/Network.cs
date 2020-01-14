@@ -1,8 +1,11 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using MathNet.Numerics.LinearAlgebra;
 using MathNet.Numerics.LinearAlgebra.Single;
+
+// ReSharper disable PossibleNullReferenceException
 
 namespace NNet
 {
@@ -28,6 +31,42 @@ namespace NNet
             }
         }
 
+        public double Cost(Layer correctLayer)
+        {
+            Vector<double> vec = Layers[Layers.Length - 1].GetNeuronValues();
+            Vector<double> correctVec = correctLayer.GetNeuronValues();
+            int max = vec.Count;
+            int perfectMax = correctVec.Count;
+            if (perfectMax != max)
+                throw new Exception("Test layer is not the same dimension as final layer of network");
+
+            Vector<double> diffSquared = Vector<double>.Build.Dense(max);
+
+            vec.Map2(
+                ((a, b) => Math.Pow((a - b), 2)),
+                correctVec,
+                diffSquared);
+
+            return diffSquared.Sum();
+        }
+
+        public Vector<double> GetWeights()
+        {
+            List<double> layerWeights = new List<double>();
+            for (int i = 1; i < Layers.Length; i++)
+            {
+                var weights = Layers[i].GetNeuronInfluences();
+                for (int j = 0; j < weights.Count; j++)
+                {
+                    layerWeights.Add(weights[j]);
+                }
+            }
+
+            return Vector<double>.Build.DenseOfArray(layerWeights.ToArray());
+        }
+
+        #region Utility
+
         public void RandomizeWeightsAndBiases()
         {
             Random rand = new Random();
@@ -45,7 +84,6 @@ namespace NNet
                         Neuron frontNeuron = Layers[i].NeuronArray[currentLayerNeuronIndex];
                         frontNeuron.Influences[backLayerNeuronIndex].Back = backNeuron;
                         frontNeuron.Influences[backLayerNeuronIndex].Front = frontNeuron;
-                        frontNeuron.Influences[backLayerNeuronIndex].Bias = (float) rand.NextDouble();
                         frontNeuron.Influences[backLayerNeuronIndex].Weight = (float) rand.NextDouble();
                     }
                 }
@@ -68,7 +106,6 @@ namespace NNet
                     {
                         NeuronLink link = currentNeuron.Influences[k];
                         writer.WriteLine("Weight:" + link.Weight);
-                        writer.WriteLine("Bias:" + link.Bias);
                     }
                 }
             }
@@ -80,22 +117,22 @@ namespace NNet
         {
             StreamReader reader = new StreamReader(filePath);
             string header = reader.ReadLine();
-            int layerCount = Int32.Parse(header.Split(':').Last());
+            int layerCount = int.Parse(header.Split(':').Last());
             if (layerCount != Layers.Length - 1)
                 throw new Exception("Invalid Layer count of: " + layerCount +
                                     " doesn't match with network layer count of " + Layers.Length);
-            for (int i = 1; i < layerCount+1; i++)
+            for (int i = 1; i < layerCount + 1; i++)
             {
-                string LayerHeader = reader.ReadLine();
-                int nodeCount = Int32.Parse(LayerHeader.Split(':').Last());
+                string layerHeader = reader.ReadLine();
+                int nodeCount = int.Parse(layerHeader.Split(':').Last());
                 if (nodeCount != Layers[i].NeuronArray.Length)
                     throw new Exception("Invalid neuron count of: " + nodeCount +
                                         " doesn't match with layer neuron count of " + Layers[i].NeuronArray.Length);
                 for (int j = 0; j < nodeCount; j++)
                 {
                     Neuron currentNeuron = Layers[i].NeuronArray[j];
-                    string NodeHeader = reader.ReadLine();
-                    int previousNodeCount = Int32.Parse(NodeHeader.Split(':').Last());
+                    string nodeHeader = reader.ReadLine();
+                    int previousNodeCount = int.Parse(nodeHeader.Split(':').Last());
                     if (previousNodeCount != currentNeuron.Influences.Length)
                         throw new Exception("Invalid neuron count of: " + previousNodeCount +
                                             " doesn't match with layer neuron count of " +
@@ -103,12 +140,9 @@ namespace NNet
                     for (int k = 0; k < previousNodeCount; k++)
                     {
                         string weightString = reader.ReadLine();
-                        string biasString = reader.ReadLine();
                         float weight = float.Parse(weightString.Split(':').Last());
-                        float bias = float.Parse(biasString.Split(':').Last());
 
                         currentNeuron.Influences[k].Weight = weight;
-                        currentNeuron.Influences[k].Bias = bias;
                     }
                 }
             }
@@ -117,23 +151,20 @@ namespace NNet
             reader.Close();
         }
 
-        public double Cost(Layer perfectLayer)
+        public string PrintNetwork()
         {
-            Vector<double> vec = Layers[Layers.Length - 1].GetNeuronValues();
-            Vector<double> perfVec = perfectLayer.GetNeuronValues();
-            int max = vec.Count;
-            int perfectMax = perfVec.Count;
-            if (perfectMax != max)
-                throw new Exception("Test layer is not the same dimension as final layer of network");
+            string returnString = "[\n";
 
-            Vector<double> diffSquared = Vector<double>.Build.Dense(max);
+            for (int i = 0; i < Layers.Length; i++)
+            {
+                string layer = Layers[i].PrintActivations();
+                returnString += layer + "\n";
+            }
 
-            vec.Map2(
-                ((a, b) => Math.Pow((a - b), 2)),
-                perfVec,
-                diffSquared);
-
-            return diffSquared.Sum();
+            returnString += "]";
+            return returnString;
         }
+        
+        #endregion
     }
 }
