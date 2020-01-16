@@ -7,7 +7,22 @@ namespace NNet
     {
         private double _activation = 0.0f;
         private double _bias = 0.0f;
-        public NeuronLink[] Influences;
+        private Vector<double> _influenceWeights;
+
+        private NeuronLink[] _influences;
+        public NeuronLink[] Influences
+        {
+            get { return _influences; }
+            set
+            {
+                _influences = Influences;
+                _influenceWeights = Vector<double>.Build.Dense(_influences.Length);
+                for (int i = 0; i < Influences.Length; i++)
+                {
+                    _influenceWeights[i] = _influences[i].Weight;
+                }
+            }
+        }
 
         public double Activation
         {
@@ -40,9 +55,17 @@ namespace NNet
             {
                 returnVec[i] = Influences[i].Weight;
             }
-            int x = <int>
-                    //Make a function that can set these as a vector as well
+            //Make a function that can set these as a vector as well
             return returnVec;
+        }
+
+        public void SetInfluencesWeights(Vector<double> newWeights)
+        {
+            _influenceWeights = newWeights;
+            for (int i = 0; i < Influences.Length; i++)
+            {
+                _influences[i].Weight = _influenceWeights[i];
+            }
         }
     }
 }

@@ -7,9 +7,9 @@ using System.Diagnostics.Contracts;
      {
          public Neuron Back;
          public Neuron Front;
-         public float Weight;
+         public double Weight;
 
-         public NeuronLink(Neuron back=null, Neuron front = null, float weight = 0.0f)
+         public NeuronLink(Neuron back=null, Neuron front = null, double weight = 0.0f)
          {
              Back = back;
              Front = front;
