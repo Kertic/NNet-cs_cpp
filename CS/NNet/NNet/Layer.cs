@@ -1,62 +1,88 @@
-using System.Collections.Generic;
+using System;
 using MathNet.Numerics.LinearAlgebra;
-using MathNet.Numerics.LinearAlgebra.Single;
 
 namespace NNet
 {
     public class Layer
     {
-        public Neuron[] NeuronArray;
-        public Layer BackLayer;
+        private Matrix<double> _weights;
+        private Vector<double> _previousNeurons;
+        private Vector<double> _manualNeurons;
+        private Vector<double> _biases;
+        public int NeuronCount { get; private set; }
 
-        public Layer(Neuron[] neuronArray, Layer backLayer = null)
+        public Matrix<double> Weights
         {
-            NeuronArray = neuronArray;
-            for (int i = 0; i < neuronArray.Length; i++)
+            get { return _weights; }
+            set
             {
-                if (NeuronArray[i] == null)
-                    NeuronArray[i] = new Neuron();
+                if (value.ColumnCount != _weights.ColumnCount || value.RowCount != _weights.RowCount)
+                {
+                    throw new Exception("Attempted to set weight matrix of size: {" + _weights.ColumnCount + "," +
+                                        _weights.RowCount + "} to matrix of size: {" + value.ColumnCount + "," +
+                                        value.RowCount + "}");
+                }
+
+                _weights = value;
             }
         }
 
-        public Vector<double> GetNeuronValues()
+        public Vector<double> Biases
         {
-            Vector<double> returnVector = Vector<double>.Build.Dense(NeuronArray.Length);
-            for (int i = 0; i < NeuronArray.Length; i++)
+            get { return _biases; }
+            set
             {
-                returnVector[i] = NeuronArray[i].Activation;
+                if (_weights != null)
+                    throw new Exception("Attempted to set neurons manually when they have a previous layer");
+                if (_biases.Count != value.Count)
+                    throw new Exception("Attempted to set neuron vector of size: " + _biases.Count +
+                                        " with a constant vector of size: " + value.Count);
+                _biases = value;
             }
-
-            return returnVector;
         }
 
-        public string PrintActivations()
+        public Vector<double> Neurons
         {
-            string returnString = "{";
-
-            for (int i = 0; i < NeuronArray.Length - 1; i++)
+            get
             {
-                returnString += NeuronArray[i].Activation + ",";
-            }
+                Vector<double> weightedSums;
+                if (_weights != null)
+                {
+                    weightedSums = _weights * (_previousNeurons + _biases);
+                }
+                else
+                {
+                    weightedSums = (_manualNeurons + _biases);
+                }
 
-            returnString += NeuronArray[NeuronArray.Length - 1].Activation;
-            returnString += "}";
-            return returnString;
+                weightedSums.Map((d => d > 0 ? d : 0.0));
+                return weightedSums;
+            }
+            set
+            {
+                if (_weights != null)
+                    throw new Exception("Attempted to set neurons manually when they have a previous layer");
+                if (NeuronCount != value.Count)
+                    throw new Exception("Attempted to set neuron vector of size: " + NeuronCount +
+                                        " with a constant vector of size: " + value.Count);
+                _manualNeurons = value;
+            }
         }
 
-        public Vector<double> GetNeuronInfluences()
+        public Layer(int neuronCount, Layer previousLayer = null)
         {
-            List<double> neurons = new List<double>();
-            for (int i = 0; i < NeuronArray.Length; i++)
+            NeuronCount = neuronCount;
+            _biases = Vector<double>.Build.Dense(neuronCount);
+            if (previousLayer == null)
             {
-                var vec = NeuronArray[i].GetInfluencesWeights().ToArray();
-                for (int j = 0; j < vec.Length; j++)
-                    neurons.Add(vec[j]);
+                _previousNeurons = null;
+                _weights = null;
             }
-
-            Vector<double> returnVec = Vector<double>.Build.DenseOfArray(neurons.ToArray());
-
-            return returnVec;
+            else
+            {
+                _previousNeurons = previousLayer.Neurons;
+                _weights = Matrix<double>.Build.Dense(neuronCount, previousLayer.Neurons.Count);
+            }
         }
     }
 }
